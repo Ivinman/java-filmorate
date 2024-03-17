@@ -22,16 +22,16 @@ public class FilmController {
         if (!validation(film)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
-        } else if (films.containsValue(film)) {
+        }
+        if (films.containsValue(film)) {
             log.info("Добавление через POST запрос уже имеющегося объекта");
             throw new AlreadyExistException("Данный фильм уже добавлен");
-        } else {
-            id++;
-            film.setId(id);
-            films.put(id, film);
-            log.info("Новый фильм добавлен в общий список");
-            return film;
         }
+        id++;
+        film.setId(id);
+        films.put(id, film);
+        log.info("Новый фильм добавлен в общий список");
+        return film;
     }
 
     @PutMapping
@@ -39,36 +39,27 @@ public class FilmController {
         if (!validation(film)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
+        }
+        if (film.getId() == 0) {
+            id++;
+            film.setId(id);
+            log.info("Новый фильм добавлен в общий список");
+            films.put(id, film);
+            return film;
         } else {
-            if (film.getId() == 0) {
-                id++;
-                film.setId(id);
-                log.info("Новый фильм добавлен в общий список");
+            if (films.containsKey(film.getId())) {
+                log.info("Был обновлён фильм под названием: {}", film.getName());
                 films.put(id, film);
                 return film;
             } else {
-                if (films.containsKey(film.getId())) {
-                    log.info("Был обновлён фильм под названием: {}", film.getName());
-                    films.put(id, film);
-                    return film;
-                } else {
-                    throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
-                }
+                throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
             }
         }
     }
 
     @GetMapping
     public List<Film> getAll() {
-        List<Film> filmsList = new ArrayList<>();
-        for (int i = 1; i <= films.size(); i++) {
-            for (Film film : films.values()) {
-                if (film.getId() == i) {
-                    filmsList.add(film);
-                }
-            }
-        }
-        return filmsList;
+        return new ArrayList<>(films.values());
     }
 
     private boolean validation(Film film) {

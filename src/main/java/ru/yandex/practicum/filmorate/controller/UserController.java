@@ -22,19 +22,19 @@ public class UserController {
         if (!validation(user)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
-        } else if (users.containsValue(user)) {
+        }
+        if (users.containsValue(user)) {
             log.info("Добавление через POST-запрос уже имеющегося объекта");
             throw new AlreadyExistException("Данный пользователь уже добавлен");
-        } else {
-            if (user.getName() == null || user.getName().isEmpty() || user.getName().isBlank()) {
-                user.setName(user.getLogin());
-            }
-            id++;
-            user.setId(id);
-            users.put(id, user);
-            log.info("Новый пользователь добавлен в общий список");
-            return user;
         }
+        if (user.getName() == null || user.getName().isEmpty() || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+        id++;
+        user.setId(id);
+        users.put(id, user);
+        log.info("Новый пользователь добавлен в общий список");
+        return user;
     }
 
     @PutMapping
@@ -42,39 +42,30 @@ public class UserController {
         if (!validation(user)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
+        }
+        if (user.getName().isEmpty() || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+        }
+        if (user.getId() == 0) {
+            id++;
+            user.setId(id);
+            log.info("Новый пользователь добавлен в общий список");
+            users.put(user.getId(), user);
+            return user;
         } else {
-            if (user.getName().isEmpty() || user.getName().isBlank()) {
-                user.setName(user.getLogin());
-            }
-            if (user.getId() == 0) {
-                id++;
-                user.setId(id);
-                log.info("Новый пользователь добавлен в общий список");
+            if (users.containsKey(user.getId())) {
+                log.info("Был обновлён пользователь с почтой: {}", user.getEmail());
                 users.put(user.getId(), user);
                 return user;
             } else {
-                if (users.containsKey(user.getId())) {
-                    log.info("Был обновлён пользователь с почтой: {}", user.getEmail());
-                    users.put(user.getId(), user);
-                    return user;
-                } else {
-                    throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
-                }
+                throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
             }
         }
     }
 
     @GetMapping
     public List<User> getAll() {
-        List<User> usersList = new ArrayList<>();
-        for (int i = 1; i <= users.size(); i++) {
-            for (User user : users.values()) {
-                if (user.getId() == i) {
-                    usersList.add(user);
-                }
-            }
-        }
-        return usersList;
+        return new ArrayList<>(users.values());
     }
 
     private boolean validation(User user) {
