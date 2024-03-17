@@ -22,7 +22,7 @@ class FilmControllerTest {
     }
 
     @Test
-    void addFilm() throws Exception{
+    void addFilm() throws Exception {
         Film film = new Film("name","description", "1997-12-12", 200);
         filmController.addFilm(film);
 
@@ -46,7 +46,7 @@ class FilmControllerTest {
     }
 
     @Test
-    void addOrUpdateFilm() throws Exception{
+    void addOrUpdateFilm() throws Exception {
         Film film1 = new Film("name","description", "1997-12-12", 200);
         filmController.addOrUpdateFilm(film1);
 
@@ -63,7 +63,7 @@ class FilmControllerTest {
     }
 
     @Test
-    void getAll() throws Exception{
+    void getAll() throws Exception {
         Film film1 = new Film("name","description", "1997-12-12", 200);
         Film film2 = new Film("name2","description2", "1998-12-12", 200);
         Film film3 = new Film("name2","New description", "1997-12-12", 200);

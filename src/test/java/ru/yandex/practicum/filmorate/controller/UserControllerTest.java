@@ -27,7 +27,7 @@ class UserControllerTest {
     }
 
     @Test
-    void addUser() throws Exception{
+    void addUser() throws Exception {
         User user = createUser();
         System.out.println(user.getId());
         userController.addUser(user);
@@ -72,7 +72,7 @@ class UserControllerTest {
     }
 
     @Test
-    void getAll() throws Exception{
+    void getAll() throws Exception {
         User user1 = createUser();
         User user2 = new User("@mail", "lofin", "2000-02-02");
         User user3 = user2;
