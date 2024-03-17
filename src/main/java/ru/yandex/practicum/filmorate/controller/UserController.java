@@ -22,11 +22,11 @@ public class UserController {
         if (!validation(user)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
-        }else if (users.containsValue(user)) {
+        } else if (users.containsValue(user)) {
             log.info("Добавление через POST-запрос уже имеющегося объекта");
             throw new AlreadyExistException("Данный пользователь уже добавлен");
-        }else {
-            if(user.getName() == null || user.getName().isEmpty() || user.getName().isBlank()) {
+        } else {
+            if (user.getName() == null || user.getName().isEmpty() || user.getName().isBlank()) {
                 user.setName(user.getLogin());
             }
             id++;
@@ -38,12 +38,12 @@ public class UserController {
     }
 
     @PutMapping
-    public User addOrUpdateUser(@RequestBody User user) throws Exception{
+    public User addOrUpdateUser(@RequestBody User user) throws Exception {
         if (!validation(user)) {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
         } else {
-            if(user.getName().isEmpty() || user.getName().isBlank()) {
+            if (user.getName().isEmpty() || user.getName().isBlank()) {
                 user.setName(user.getLogin());
             }
             if (user.getId() == 0) {
@@ -85,7 +85,7 @@ public class UserController {
     private boolean validation(User user) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         return user.getEmail() != null
-                &&!user.getEmail().isBlank()
+                && !user.getEmail().isBlank()
                 && !user.getEmail().isEmpty()
                 && user.getEmail().contains("@")
                 && !user.getLogin().isBlank()
