@@ -54,11 +54,7 @@ public class FilmController {
                 } else {
                     throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
                 }
-                //film.setId(films.get(film.getName()).getId());
-                //log.info("Был обновлён фильм под названием: {}", film.getName());
             }
-            //films.put(id, film);
-            //return film;
         }
     }
 
@@ -73,7 +69,6 @@ public class FilmController {
             }
         }
         return filmsList;
-        //return new ArrayList<>(films.values());
     }
 
     private boolean validation(Film film) {
@@ -83,7 +78,7 @@ public class FilmController {
                 && !film.getName().isBlank()
                 && film.getDescription().length() <= 200
                 && LocalDate.parse(film.getReleaseDate(), formatter)
-                    .isAfter(LocalDate.parse("1895-12-28", formatter))  //film.getReleaseDate().isAfter(LocalDate.parse("28.12.1895", DateTimeFormatter.ofPattern("dd.MM.yyyy")))
+                    .isAfter(LocalDate.parse("1895-12-28", formatter))
                 && film.getDuration() > 0;
     }
 }

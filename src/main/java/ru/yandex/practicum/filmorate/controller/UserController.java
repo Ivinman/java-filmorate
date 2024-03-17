@@ -60,11 +60,7 @@ public class UserController {
                 } else {
                     throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
                 }
-                //user.setId(users.get(user.getEmail()).getId());
-                //log.info("Был обновлён пользователь с почтой: {}", user.getEmail());
             }
-            //users.put(user.getId(), user);
-            //return user;
         }
     }
 
@@ -79,7 +75,6 @@ public class UserController {
             }
         }
         return usersList;
-        //return new ArrayList<>(users.values());
     }
 
     private boolean validation(User user) {
