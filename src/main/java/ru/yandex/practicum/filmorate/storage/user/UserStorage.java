@@ -7,7 +7,10 @@ import java.util.Map;
 
 public interface UserStorage {
     Map<Integer, User> getUsers();
+
     User addUser(User user) throws Exception;
+
     User addOrUpdateUser(User user) throws Exception;
+
     List<User> getAll();
 }
