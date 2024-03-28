@@ -3,11 +3,13 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Data
-@EqualsAndHashCode
 public class User {
     @EqualsAndHashCode.Exclude
-    private int id;
+    private Integer id;
 
     private final String email;
     private final String login;
@@ -16,5 +18,13 @@ public class User {
     private String name;
 
     private final String birthday;
+    private Set<Integer> friendsId = new HashSet<>();
 
+    public void addFriend(Integer userId) {
+        friendsId.add(userId);
+    }
+
+    public void deleteFromFriends(Integer userId) {
+        friendsId.remove(userId);
+    }
 }

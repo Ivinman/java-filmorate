@@ -1,75 +1,53 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.film.InMemoryFilmStorage;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
 @RequestMapping("/films")
-@Slf4j
 public class FilmController {
-    private final Map<Integer, Film> films = new HashMap<>();
-    private int id = 0;
+    private final FilmStorage filmStorage;
+    private final FilmService filmService;
+
+    public FilmController(FilmStorage filmStorage, FilmService filmService) {
+        this.filmStorage = filmStorage;
+        this.filmService = filmService;
+    }
 
     @PostMapping
     public Film addFilm(@RequestBody Film film) throws Exception {
-        if (!validation(film)) {
-            log.info("Ошибка валидации");
-            throw new ValidationException("Ошибка валидации");
-        }
-        if (films.containsValue(film)) {
-            log.info("Добавление через POST запрос уже имеющегося объекта");
-            throw new AlreadyExistException("Данный фильм уже добавлен");
-        }
-        id++;
-        film.setId(id);
-        films.put(id, film);
-        log.info("Новый фильм добавлен в общий список");
-        return film;
+        return filmStorage.addFilm(film);
     }
 
     @PutMapping
     public Film addOrUpdateFilm(@RequestBody Film film) throws Exception {
-        if (!validation(film)) {
-            log.info("Ошибка валидации");
-            throw new ValidationException("Ошибка валидации");
-        }
-        if (film.getId() == 0) {
-            id++;
-            film.setId(id);
-            log.info("Новый фильм добавлен в общий список");
-            films.put(id, film);
-            return film;
-        } else {
-            if (films.containsKey(film.getId())) {
-                log.info("Был обновлён фильм под названием: {}", film.getName());
-                films.put(id, film);
-                return film;
-            } else {
-                throw new ValidationException("Попытка обновления предварительно не добавленного объекта");
-            }
-        }
+        return filmStorage.addOrUpdateFilm(film);
     }
 
     @GetMapping
     public List<Film> getAll() {
-        return new ArrayList<>(films.values());
+        return filmStorage.getAll();
     }
 
-    private boolean validation(Film film) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-        return film.getName() != null
-                && !film.getName().isEmpty()
-                && !film.getName().isBlank()
-                && film.getDescription().length() <= 200
-                && LocalDate.parse(film.getReleaseDate(), formatter)
-                    .isAfter(LocalDate.parse("1895-12-28", formatter))
-                && film.getDuration() > 0;
+    @PutMapping("/{id}/like/{userId}")
+    public Film addLike(@PathVariable (required = false) Integer id,
+                        @PathVariable (required = false) Integer userId) {
+        return filmService.addLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public Film deleteLike(@PathVariable (required = false) Integer id,
+                           @PathVariable (required = false) Integer userId) {
+        return filmService.deleteLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public List<Film> getTopFilms(@RequestParam (defaultValue = "10", required = false) Integer count) {
+        return filmService.getTopFilms(count);
     }
 }
