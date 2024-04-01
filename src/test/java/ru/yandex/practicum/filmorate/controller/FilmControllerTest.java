@@ -22,10 +22,10 @@ class FilmControllerTest {
 
     @BeforeEach
     void createController() {
-        filmStorage = new InMemoryFilmStorage();
         userStorage = new InMemoryUserStorage();
+        filmStorage = new InMemoryFilmStorage();
         FilmService filmService = new FilmService(filmStorage, userStorage);
-        filmController = new FilmController(filmStorage, filmService);
+        filmController = new FilmController(filmService);
     }
 
     private ValidationException getThrown(Film film) {

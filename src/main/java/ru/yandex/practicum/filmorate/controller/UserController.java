@@ -3,34 +3,31 @@ package ru.yandex.practicum.filmorate.controller;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
 
 @RestController
 @RequestMapping("/users")
 public class UserController {
-    private final UserStorage userStorage;
     private final UserService userService;
 
-    public UserController(UserStorage userStorage, UserService userService) {
-        this.userStorage = userStorage;
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
     @PostMapping
     public User addUser(@RequestBody User user) throws Exception {
-        return userStorage.addUser(user);
+        return userService.addUser(user);
     }
 
     @PutMapping
     public User addOrUpdateUser(@RequestBody User user) throws Exception {
-        return userStorage.addOrUpdateUser(user);
+        return userService.addOrUpdateUser(user);
     }
 
     @GetMapping
     public List<User> getAll() {
-        return userStorage.getAll();
+        return userService.getAll();
     }
 
     @PutMapping("/{id}/friends/{friendId}")

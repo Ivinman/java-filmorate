@@ -27,7 +27,7 @@ class UserControllerTest {
     void createController() {
         UserStorage userStorage = new InMemoryUserStorage();
         UserService userService = new UserService(userStorage);
-        userController = new UserController(userStorage, userService);
+        userController = new UserController(userService);
     }
 
     private ValidationException getThrown(User user) {

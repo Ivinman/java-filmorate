@@ -2,14 +2,14 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
-import ru.yandex.practicum.filmorate.exception.FilmNotFoundException;
-import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
-import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exception.*;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +22,34 @@ public class FilmService {
     public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+    }
+
+    public Film addFilm(Film film) throws Exception {
+        if (!validation(film)) {
+            log.info("Ошибка валидации");
+            throw new ValidationException("Ошибка валидации");
+        }
+        if (filmStorage.getFilms().containsValue(film)) {
+            log.info("Добавление через POST запрос уже имеющегося объекта");
+            throw new AlreadyExistException("Данный фильм уже добавлен");
+        }
+        return filmStorage.addFilm(film);
+    }
+
+    public Film addOrUpdateFilm(Film film) throws Exception {
+        if (!validation(film)) {
+            log.info("Ошибка валидации");
+            throw new ValidationException("Ошибка валидации");
+        }
+        Film testFilm = filmStorage.addOrUpdateFilm(film);
+        if (testFilm == null) {
+            throw new FilmNotFoundException("Попытка обновления предварительно не добавленного объекта");
+        }
+        return testFilm;
+    }
+
+    public List<Film> getAll() {
+        return new ArrayList<>(filmStorage.getFilms().values());
     }
 
     public Film addLike(Integer filmId, Integer userId) {
@@ -67,5 +95,16 @@ public class FilmService {
             log.info("Пользователь не найден");
             throw new UserNotFoundException("Пользователь не найден");
         }
+    }
+
+    private boolean validation(Film film) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        return film.getName() != null
+                && !film.getName().isEmpty()
+                && !film.getName().isBlank()
+                && film.getDescription().length() <= 200
+                && LocalDate.parse(film.getReleaseDate(), formatter)
+                .isAfter(LocalDate.parse("1895-12-28", formatter))
+                && film.getDuration() > 0;
     }
 }
