@@ -3,8 +3,7 @@ package ru.yandex.practicum.filmorate.model;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Film.
@@ -19,6 +18,11 @@ public class Film {
     private final String description;
     private final String releaseDate;
     private final Integer duration;
+
+    //@EqualsAndHashCode.Exclude
+    private Set<Genre> genres = new LinkedHashSet<>();
+    //@EqualsAndHashCode.Exclude
+    private Mpa mpa;
 
     private Integer likes = 0;
     private Set<Integer> usersIdLikes = new HashSet<>();

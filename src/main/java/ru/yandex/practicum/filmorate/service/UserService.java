@@ -1,12 +1,16 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserDbFriend;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
@@ -17,10 +21,16 @@ import java.util.List;
 @Service
 @Slf4j
 public class UserService {
+    private final JdbcTemplate jdbcTemplate;
     private final UserStorage userStorage;
 
-    public UserService(UserStorage userStorage) {
+    private final UserDbFriend userDbFriend;
+
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, JdbcTemplate jdbcTemplate,
+                       UserDbFriend userDbFriend) {
         this.userStorage = userStorage;
+        this.jdbcTemplate = jdbcTemplate;
+        this.userDbFriend = userDbFriend;
     }
 
     public User addUser(User user) throws Exception {
@@ -28,9 +38,13 @@ public class UserService {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
         }
-        if (userStorage.getUsers().containsValue(user)) {
-            log.info("Добавление через POST-запрос уже имеющегося объекта");
-            throw new AlreadyExistException("Данный пользователь уже добавлен");
+        SqlRowSet userFromDb = jdbcTemplate.queryForRowSet("select * from users");
+        while (userFromDb.next()) {
+            if (userFromDb.getString("email").equals(user.getEmail()) ||
+                    userFromDb.getString("login").equals(user.getLogin())) {
+                log.info("Добавление через POST-запрос уже имеющегося объекта");
+                throw new AlreadyExistException("Данный пользователь уже добавлен");
+            }
         }
         return userStorage.addUser(user);
     }
@@ -48,65 +62,43 @@ public class UserService {
     }
 
     public List<User> getAll() {
-        return new ArrayList<>(userStorage.getUsers().values());
+        List<User> usersFromDb = new ArrayList<>();
+        SqlRowSet addUser = jdbcTemplate.queryForRowSet("select * from users");
+        while (addUser.next()) {
+            usersFromDb.add(userFromDbBuild(addUser));
+        }
+        return usersFromDb;
     }
 
     public void addFriend(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
-        if (userStorage.getUsers().get(userId).getFriendsId().contains(requestedUserId)) {
-            log.info("Пользователь {} уже находится в списке друзей",
-                    userStorage.getUsers().get(requestedUserId).getName());
-            throw new AlreadyExistException("Данный пользователь уже находится в списке друзей");
-        }
-
-        userStorage.getUsers().get(userId).addFriend(requestedUserId);
-        userStorage.getUsers().get(requestedUserId).addFriend(userId);
-
-        log.info("Пользователь {} добавлен в список друзей {}",
-                userStorage.getUsers().get(requestedUserId).getName(),
-                userStorage.getUsers().get(userId).getName());
+        userDbFriend.addFriend(userId, requestedUserId);
     }
+
 
     public String deleteFromFriends(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
-
-        userStorage.getUsers().get(userId).deleteFromFriends(requestedUserId);
-        userStorage.getUsers().get(requestedUserId).deleteFromFriends(userId);
-
-        log.info("Пользователь {} удален из списка друзей {}",
-                userStorage.getUsers().get(requestedUserId).getName(),
-                userStorage.getUsers().get(userId).getName());
-
-        return userStorage.getUsers().get(userId).getName() +
-                " удалил из друзей: " +
-                userStorage.getUsers().get(requestedUserId).getName();
+        return userDbFriend.deleteFromFriends(userId, requestedUserId);
     }
 
     public List<User> getUserFriends(Integer userId) {
-        if (!userStorage.getUsers().containsKey(userId)) {
+        if (!jdbcTemplate.queryForRowSet("select user_id from users where user_id = ?", userId).next()){
             log.info("Пользователь с данным id не найден");
             throw new UserNotFoundException("Пользователь с данным id не найден");
         }
-        List<User> userFriends = new ArrayList<>();
-        for (User userInStorage : getAll()) {
-            for (Integer id : userStorage.getUsers().get(userId).getFriendsId()) {
-                if (userInStorage.getId().equals(id)) {
-                    userFriends.add(userStorage.getUsers().get(id));
-                }
-            }
-        }
-        return userFriends;
+        return userDbFriend.getUserFriends(userId);
     }
 
     public List<User> getCommonFriends(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
+
         List<User> commonFriends = new ArrayList<>();
-        for (Integer userFriendId : userStorage.getUsers().get(userId).getFriendsId()) {
-            for (Integer requestedUserFriendId : userStorage.getUsers().get(requestedUserId).getFriendsId()) {
-                if (userFriendId.equals(requestedUserFriendId)) {
-                    commonFriends.add(userStorage.getUsers().get(requestedUserFriendId));
-                    break;
-                }
+
+        List<User> userFriends = getUserFriends(userId);
+        List<User> requestUserFriends = getUserFriends(requestedUserId);
+        for (User user : userFriends) {
+            if (requestUserFriends.contains(user)) {
+                commonFriends.add(user);
             }
         }
         return commonFriends;
@@ -116,8 +108,8 @@ public class UserService {
         if (userId == null || requestedUserId == null) {
             throw new IncorrectParameterException("Некорректно заданные данные пользователей");
         }
-        if (!userStorage.getUsers().containsKey(userId)
-                || !userStorage.getUsers().containsKey(requestedUserId)) {
+        if (!jdbcTemplate.queryForRowSet("select user_id from users where user_id = ?", userId).next()
+                || !jdbcTemplate.queryForRowSet("select user_id from users where user_id = ?", requestedUserId).next()) {
             log.info("Пользователь с данным id не найден");
             throw new UserNotFoundException("Пользователь с данным id не найден");
         }
@@ -133,5 +125,26 @@ public class UserService {
                 && !user.getLogin().isEmpty()
                 && !user.getLogin().contains(" ")
                 && !LocalDate.parse(user.getBirthday(), formatter).isAfter(LocalDate.now());
+    }
+
+    private User userFromDbBuild(SqlRowSet sqlRowSet) {
+        User returnedUser = new User(sqlRowSet.getString("email"),
+                sqlRowSet.getString("login"),
+                sqlRowSet.getString("birthday"));
+        returnedUser.setId(sqlRowSet.getInt("user_id"));
+        returnedUser.setName(sqlRowSet.getString("name"));
+
+        SqlRowSet usersFriendsList = jdbcTemplate.queryForRowSet("select * from friends " +
+                "inner join users on users.user_id = friends.request_sender_id where request_is_accept = true " +
+                "and (request_sender_id = ? or request_recivier_id = ?)", returnedUser.getId(), returnedUser.getId());
+        while (usersFriendsList.next()) {
+            if (usersFriendsList.getInt("request_recivier_id") == returnedUser.getId()) {
+                returnedUser.addFriend(usersFriendsList.getInt("request_sender_id"));
+            }
+            if (usersFriendsList.getInt("request_sender_id") == returnedUser.getId()) {
+                returnedUser.addFriend(usersFriendsList.getInt("request_recivier_id"));
+            }
+        }
+        return returnedUser;
     }
 }

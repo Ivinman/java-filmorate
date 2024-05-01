@@ -18,13 +18,10 @@ public class User {
     private String name;
 
     private final String birthday;
+
     private Set<Integer> friendsId = new HashSet<>();
 
     public void addFriend(Integer userId) {
         friendsId.add(userId);
-    }
-
-    public void deleteFromFriends(Integer userId) {
-        friendsId.remove(userId);
     }
 }

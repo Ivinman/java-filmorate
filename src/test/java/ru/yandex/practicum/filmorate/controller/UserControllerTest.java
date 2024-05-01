@@ -1,7 +1,11 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
@@ -9,14 +13,18 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserDbFriend;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@JdbcTest
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserControllerTest {
     private UserController userController;
+    private JdbcTemplate jdbcTemplate;
 
 
     private User createUser() {
@@ -26,7 +34,7 @@ class UserControllerTest {
     @BeforeEach
     void createController() {
         UserStorage userStorage = new InMemoryUserStorage();
-        UserService userService = new UserService(userStorage);
+        UserService userService = new UserService(userStorage, new JdbcTemplate(), new UserDbFriend(jdbcTemplate));
         userController = new UserController(userService);
     }
 
