@@ -67,7 +67,7 @@ public class FilmDbStorage implements FilmStorage {
         returnedFilm.setLikes(filmFromDB.getInt("likes"));
 
         SqlRowSet mpaDb = jdbcTemplate.queryForRowSet("select * from mpa where mpa_id = ?", filmFromDB.getInt("mpa"));
-        if(mpaDb.next()) {
+        if (mpaDb.next()) {
             Mpa mpa = new Mpa(mpaDb.getInt("mpa_id"), mpaDb.getString("mpa_name"));
             returnedFilm.setMpa(mpa);
         }
