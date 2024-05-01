@@ -91,9 +91,7 @@ public class UserService {
 
     public List<User> getCommonFriends(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
-
         List<User> commonFriends = new ArrayList<>();
-
         List<User> userFriends = getUserFriends(userId);
         List<User> requestUserFriends = getUserFriends(requestedUserId);
         for (User user : userFriends) {

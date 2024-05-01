@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 @Slf4j
@@ -50,15 +49,9 @@ public class FilmDbStorage implements FilmStorage {
                 film.getReleaseDate(), film.getDuration(), 0);
         SqlRowSet filmDb = jdbcTemplate.queryForRowSet("select film_id from films order by film_id desc limit 1");
         filmDb.next();
-        //List<Integer> genreId = new ArrayList<>();
         for (Genre genre : film.getGenres()) {
             jdbcTemplate.update("insert into film_genres (film_id, genre_id) " +
                     "values (?, ?)", filmDb.getInt("film_id"), genre.getId());
-            /*if (!genreId.contains(genre.getId())) {
-                jdbcTemplate.update("insert into film_genres (film_id, genre_id) " +
-                        "values (?, ?)", filmDb.getInt("film_id"), genre.getId());
-                genreId.add(genre.getId());
-            }*/
         }
 
     log.info("Фильм {} добавлен в общий список", film.getName());

@@ -19,9 +19,7 @@ public class Film {
     private final String releaseDate;
     private final Integer duration;
 
-    //@EqualsAndHashCode.Exclude
     private Set<Genre> genres = new LinkedHashSet<>();
-    //@EqualsAndHashCode.Exclude
     private Mpa mpa;
 
     private Integer likes = 0;
@@ -29,9 +27,5 @@ public class Film {
 
     public void addUserId(Integer id) {
         usersIdLikes.add(id);
-    }
-
-    public void deleteUserId(Integer id) {
-        usersIdLikes.remove(id);
     }
 }

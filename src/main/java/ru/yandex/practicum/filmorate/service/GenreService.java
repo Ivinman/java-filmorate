@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.genre.GenreDb;
-import ru.yandex.practicum.filmorate.storage.mpa.MpaDb;
 
 import java.util.ArrayList;
 import java.util.List;

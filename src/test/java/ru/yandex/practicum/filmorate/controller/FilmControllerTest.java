@@ -31,8 +31,7 @@ class FilmControllerTest {
     void createController() {
         userStorage = new InMemoryUserStorage();
         filmStorage = new InMemoryFilmStorage();
-        //jdbcTemplate = new JdbcTemplate();
-        FilmService filmService = new FilmService(filmStorage, userStorage, jdbcTemplate);
+        FilmService filmService = new FilmService(filmStorage, jdbcTemplate);
         filmController = new FilmController(filmService);
     }
 
