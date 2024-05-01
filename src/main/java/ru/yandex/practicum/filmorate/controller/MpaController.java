@@ -14,7 +14,7 @@ import java.util.List;
 public class MpaController {
     private final MpaService mpaService;
 
-    public MpaController (MpaService mpaService) {
+    public MpaController(MpaService mpaService) {
         this.mpaService = mpaService;
     }
 
