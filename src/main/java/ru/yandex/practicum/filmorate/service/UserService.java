@@ -82,7 +82,7 @@ public class UserService {
     }
 
     public List<User> getUserFriends(Integer userId) {
-        if (!jdbcTemplate.queryForRowSet("select user_id from users where user_id = ?", userId).next()){
+        if (!jdbcTemplate.queryForRowSet("select user_id from users where user_id = ?", userId).next()) {
             log.info("Пользователь с данным id не найден");
             throw new UserNotFoundException("Пользователь с данным id не найден");
         }
