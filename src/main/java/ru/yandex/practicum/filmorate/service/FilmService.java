@@ -41,7 +41,7 @@ public class FilmService {
             returnedFilm.setLikes(filmFromDb.getInt("likes"));
 
             SqlRowSet mpaDb = jdbcTemplate.queryForRowSet("select * from mpa where mpa_id = ?", filmFromDb.getInt("mpa"));
-            if(mpaDb.next()) {
+            if (mpaDb.next()) {
                 Mpa mpa = new Mpa(mpaDb.getInt("mpa_id"), mpaDb.getString("mpa_name"));
                 returnedFilm.setMpa(mpa);
             }
@@ -197,7 +197,7 @@ public class FilmService {
         returnedFilm.setId(sqlRowSet.getInt("film_id"));
         returnedFilm.setLikes(sqlRowSet.getInt("likes"));
         SqlRowSet mpaDb = jdbcTemplate.queryForRowSet("select * from mpa where mpa_id = ?", sqlRowSet.getInt("mpa"));
-        if(mpaDb.next()) {
+        if (mpaDb.next()) {
             Mpa mpa = new Mpa(mpaDb.getInt("mpa_id"), mpaDb.getString("mpa_name"));
             returnedFilm.setMpa(mpa);
         }
