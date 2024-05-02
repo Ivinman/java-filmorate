@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
@@ -12,10 +13,12 @@ import java.util.List;
 
 @Slf4j
 @Component
-public class UserDbFriend {
+public class UserFriendStorage {
+    private final UserStorage userStorage;
     private final JdbcTemplate jdbcTemplate;
 
-    public UserDbFriend(JdbcTemplate jdbcTemplate) {
+    public UserFriendStorage(@Qualifier("userDbStorage") UserStorage userStorage, JdbcTemplate jdbcTemplate) {
+        this.userStorage = userStorage;
         this.jdbcTemplate = jdbcTemplate;
     }
 

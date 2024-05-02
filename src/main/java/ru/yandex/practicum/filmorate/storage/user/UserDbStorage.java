@@ -4,7 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Component("userDbStorage")
@@ -43,12 +47,51 @@ public class UserDbStorage implements UserStorage {
         }
     }
 
+    public Map<Integer, User> getUsers() {
+        Map<Integer, User> usersFromDb = new HashMap<>();
+        SqlRowSet userFromDb = jdbcTemplate.queryForRowSet("select * from users");
+        while (userFromDb.next()) {
+            User returnedUser = userBuild(userFromDb);
+            usersFromDb.put(returnedUser.getId(), returnedUser);
+        }
+        return usersFromDb;
+    }
+
+    public User getUser(Integer id) {
+        SqlRowSet userFromDb = jdbcTemplate.queryForRowSet("select * from users " +
+                "where user_id = ?", id);
+        if (userFromDb.next()) {
+            return userBuild(userFromDb);
+        }
+        return null;
+    }
 
     private User addToDB(User user) {
         jdbcTemplate.update("insert into users (email, login, name, birthday) " +
                 "values (?, ?, ?, ?)", user.getEmail(), user.getLogin(), user.getName(), user.getBirthday());
         log.info("Пользователь {} добавлен", user.getName());
         return userFromDB(user);
+    }
+
+    private User userBuild(SqlRowSet sqlRowSet) {
+        User returnedUser = new User(sqlRowSet.getString("email"),
+                sqlRowSet.getString("login"),
+                sqlRowSet.getString("birthday"));
+        returnedUser.setId(sqlRowSet.getInt("user_id"));
+        returnedUser.setName(sqlRowSet.getString("name"));
+
+        SqlRowSet usersFriendsList = jdbcTemplate.queryForRowSet("select * from friends " +
+                "inner join users on users.user_id = friends.request_sender_id where request_is_accept = true " +
+                "and (request_sender_id = ? or request_recivier_id = ?)", returnedUser.getId(), returnedUser.getId());
+        while (usersFriendsList.next()) {
+            if (usersFriendsList.getInt("request_recivier_id") == returnedUser.getId()) {
+                returnedUser.addFriend(usersFriendsList.getInt("request_sender_id"));
+            }
+            if (usersFriendsList.getInt("request_sender_id") == returnedUser.getId()) {
+                returnedUser.addFriend(usersFriendsList.getInt("request_recivier_id"));
+            }
+        }
+        return returnedUser;
     }
 
     private User userFromDB(User user) {

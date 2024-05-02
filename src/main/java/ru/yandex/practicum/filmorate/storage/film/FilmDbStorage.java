@@ -15,7 +15,6 @@ import java.util.*;
 public class FilmDbStorage implements FilmStorage {
     private final JdbcTemplate jdbcTemplate;
 
-
     public FilmDbStorage(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -43,6 +42,25 @@ public class FilmDbStorage implements FilmStorage {
         }
     }
 
+    public Map<Integer, Film> getFilms() {
+        Map<Integer, Film> filmsFromDb = new HashMap<>();
+        SqlRowSet filmFromDb = jdbcTemplate.queryForRowSet("select * from films");
+        while (filmFromDb.next()) {
+            Film returnedFilm = filmBuild(filmFromDb);
+            filmsFromDb.put(returnedFilm.getId(), returnedFilm);
+        }
+        return filmsFromDb;
+    }
+
+    public Film getFilm(Integer filmId) {
+        SqlRowSet filmFromDb = jdbcTemplate.queryForRowSet("select * from films " +
+                "where film_id = ?", filmId);
+        if (filmFromDb.next()) {
+            return filmBuild(filmFromDb);
+        }
+        return null;
+    }
+
     private Film addToDB(Film film) {
         jdbcTemplate.update("insert into films (name, description, mpa, release_date, duration, likes) " +
                         "values (?, ?, ?, ?, ?, ?)", film.getName(), film.getDescription(), film.getMpa().getId(),
@@ -58,36 +76,37 @@ public class FilmDbStorage implements FilmStorage {
         return filmFromDB(film);
     }
 
-    private Film filmFromDB(Film film) {
-        SqlRowSet filmFromDB = jdbcTemplate.queryForRowSet("select * from films order by film_id desc limit 1");
-        filmFromDB.next();
-        Film returnedFilm = new Film(filmFromDB.getString("name"), filmFromDB.getString("description"),
-                filmFromDB.getString("release_date"), filmFromDB.getInt("duration"));
-        returnedFilm.setId(filmFromDB.getInt("film_id"));
-        returnedFilm.setLikes(filmFromDB.getInt("likes"));
-
-        SqlRowSet mpaDb = jdbcTemplate.queryForRowSet("select * from mpa where mpa_id = ?", filmFromDB.getInt("mpa"));
+    private Film filmBuild(SqlRowSet sqlRowSet) {
+        Film returnedFilm = new Film(sqlRowSet.getString("name"), sqlRowSet.getString("description"),
+                sqlRowSet.getString("release_date"), sqlRowSet.getInt("duration"));
+        returnedFilm.setId(sqlRowSet.getInt("film_id"));
+        returnedFilm.setLikes(sqlRowSet.getInt("likes"));
+        SqlRowSet mpaDb = jdbcTemplate.queryForRowSet("select * from mpa where mpa_id = ?", sqlRowSet.getInt("mpa"));
         if (mpaDb.next()) {
             Mpa mpa = new Mpa(mpaDb.getInt("mpa_id"), mpaDb.getString("mpa_name"));
             returnedFilm.setMpa(mpa);
         }
         Set<Genre> genres = new LinkedHashSet<>();
-
         SqlRowSet genresFromDb = jdbcTemplate.queryForRowSet("select * from genres " +
                 "inner join film_genres on film_genres.genre_id = genres.genre_id " +
-                "inner join films on films.film_id = film_genres.film_id where films.film_id = ?" +
-                "order by genre_id asc", filmFromDB.getInt("film_id"));
+                "inner join films on films.film_id = film_genres.film_id where films.film_id = ? " +
+                "order by genre_id asc", sqlRowSet.getInt("film_id"));
         while (genresFromDb.next()) {
             Genre genre = new Genre(genresFromDb.getInt("genre_id"), genresFromDb.getString("genre_name"));
             genres.add(genre);
         }
         returnedFilm.setGenres(genres);
-
         SqlRowSet filmLikesList = jdbcTemplate.queryForRowSet("select * from film_likes " +
-                "inner join films on films.film_id = film_likes.film_id where film_likes.film_id = ?", filmFromDB.getInt("film_id"));
+                "inner join films on films.film_id = film_likes.film_id where film_likes.film_id = ?", sqlRowSet.getInt("film_id"));
         while (filmLikesList.next()) {
             returnedFilm.addUserId(filmLikesList.getInt("user_id"));
         }
         return returnedFilm;
+    }
+
+    private Film filmFromDB(Film film) {
+        SqlRowSet filmFromDB = jdbcTemplate.queryForRowSet("select * from films order by film_id desc limit 1");
+        filmFromDB.next();
+        return filmBuild(filmFromDB);
     }
 }
