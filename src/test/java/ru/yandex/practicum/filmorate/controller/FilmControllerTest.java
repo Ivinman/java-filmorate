@@ -105,7 +105,7 @@ class FilmControllerTest {
 
         Film film2 = new Film("name","New description", "1997-12-12", 200);
         filmComp(film2);
-        film2.setId(1);
+        film2.setId(getFilmId());
         filmController.addOrUpdateFilm(film2);
 
         assertEquals(1, filmController.getAll().size());
