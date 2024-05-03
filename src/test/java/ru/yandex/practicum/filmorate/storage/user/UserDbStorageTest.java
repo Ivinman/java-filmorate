@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import ru.yandex.practicum.filmorate.model.User;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -20,7 +21,9 @@ class UserDbStorageTest {
         UserDbStorage userStorage = new UserDbStorage(jdbcTemplate);
 
         User savedUser = userStorage.addUser(newUser);
-        newUser.setId(1);
+        SqlRowSet lastAddedUser = jdbcTemplate.queryForRowSet("select * from users order by user_id desc limit 1");
+        lastAddedUser.next();
+        newUser.setId(lastAddedUser.getInt("user_id"));
 
         assertThat(savedUser)
                 .isNotNull()
