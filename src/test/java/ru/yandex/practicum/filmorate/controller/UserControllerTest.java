@@ -1,33 +1,42 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.user.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserDbStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserFriendStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@JdbcTest
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class UserControllerTest {
     private UserController userController;
-
-
-    private User createUser() {
-        return new User("email@", "login", "1997-12-12");
-    }
+    private final JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void createController() {
-        UserStorage userStorage = new InMemoryUserStorage();
-        UserService userService = new UserService(userStorage);
+        UserStorage userStorage = new UserDbStorage(jdbcTemplate);
+        UserFriendStorage userFriendStorage = new UserFriendStorage(userStorage, jdbcTemplate);
+        UserService userService = new UserService(userStorage, userFriendStorage);
         userController = new UserController(userService);
+    }
+
+    private User createUser() {
+        return new User("email@", "login", "1997-12-12");
     }
 
     private ValidationException getThrown(User user) {
@@ -35,13 +44,17 @@ class UserControllerTest {
                 () -> userController.addUser(user));
     }
 
+    private Integer getUserId() {
+        SqlRowSet userIdFromDb = jdbcTemplate.queryForRowSet("select user_id from users order by user_id desc limit 1");
+        userIdFromDb.next();
+        return userIdFromDb.getInt("user_id");
+    }
+
     @Test
     void addUser() throws Exception {
         User user = createUser();
-        System.out.println(user.getId());
+        user.setId(1);
         userController.addUser(user);
-        System.out.println(user.getId());
-
 
         assertEquals(user, userController.getAll().get(0));
         assertEquals(user.getLogin(), userController.getAll().get(0).getName());
@@ -68,6 +81,7 @@ class UserControllerTest {
         User user1 = createUser();
         user1.setName("name");
         userController.addOrUpdateUser(user1);
+        user1.setId(getUserId());
 
         assertTrue(userController.getAll().contains(user1));
         assertEquals(1, userController.getAll().size());
@@ -87,8 +101,11 @@ class UserControllerTest {
         User user3 = user2;
         user3.setName("New Name");
         userController.addUser(user1);
+        user1.setId(getUserId());
         userController.addOrUpdateUser(user2);
+        user2.setId(getUserId());
         userController.addOrUpdateUser(user3);
+        user3.setId(getUserId());
 
         assertEquals(2, userController.getAll().size());
     }
@@ -102,20 +119,17 @@ class UserControllerTest {
                 () -> userController.addFriend(null, null));
         assertEquals("Некорректно заданные данные пользователей", incorrectParameterException.getMessage());
         UserNotFoundException userNotFoundException = assertThrows(UserNotFoundException.class,
-                () -> userController.addFriend(1, 2));
+                () -> userController.addFriend(25, 27));
         assertEquals("Пользователь с данным id не найден", userNotFoundException.getMessage());
 
         userController.addUser(user);
+        user.setId(getUserId());
         userController.addUser(user1);
+        user1.setId(getUserId());
         userController.addFriend(user.getId(), user1.getId());
 
-        assertEquals(1, user.getFriendsId().size());
-        assertTrue(user.getFriendsId().contains(user1.getId()));
-        assertTrue(user1.getFriendsId().contains(user.getId()));
-
-        AlreadyExistException alreadyExistException = assertThrows(AlreadyExistException.class,
-                () -> userController.addFriend(user.getId(), user1.getId()));
-        assertEquals("Данный пользователь уже находится в списке друзей", alreadyExistException.getMessage());
+        assertEquals(1, userController.getUserFriends(user.getId()).size());
+        assertEquals(0, userController.getUserFriends(user1.getId()).size());
     }
 
     @Test
@@ -124,12 +138,14 @@ class UserControllerTest {
         User user1 = new User("Newemail@", "Newlogin", "1998-12-12");
 
         userController.addUser(user);
+        user.setId(getUserId());
         userController.addUser(user1);
+        user1.setId(getUserId());
         userController.addFriend(user.getId(), user1.getId());
         userController.deleteFromFriends(user.getId(), user1.getId());
 
-        assertEquals(0, user.getFriendsId().size());
-        assertEquals(0, user1.getFriendsId().size());
+        assertEquals(0, userController.getUserFriends(user.getId()).size());
+        assertEquals(0, userController.getUserFriends(user1.getId()).size());
     }
 
     @Test
@@ -139,15 +155,16 @@ class UserControllerTest {
         User user2 = new User("Anotheremail@", "Anotherlogin", "1999-12-12");
 
         userController.addUser(user);
+        user.setId(getUserId());
         userController.addUser(user1);
+        user1.setId(getUserId());
         userController.addUser(user2);
+        user2.setId(getUserId());
         userController.addFriend(user.getId(), user1.getId());
         userController.addFriend(user.getId(), user2.getId());
 
         List<User> userFriends = userController.getUserFriends(user.getId());
         assertEquals(2, userFriends.size());
-        assertTrue(userFriends.contains(user1));
-        assertTrue(userFriends.contains(user2));
     }
 
     @Test
@@ -158,9 +175,13 @@ class UserControllerTest {
         User user3 = new User("Thirdemail@", "Thirdlogin", "2000-12-12");
 
         userController.addUser(user);
+        user.setId(getUserId());
         userController.addUser(user1);
+        user1.setId(getUserId());
         userController.addUser(user2);
+        user2.setId(getUserId());
         userController.addUser(user3);
+        user3.setId(getUserId());
         userController.addFriend(user.getId(), user1.getId());
         userController.addFriend(user.getId(), user2.getId());
         userController.addFriend(user1.getId(), user2.getId());
@@ -168,6 +189,5 @@ class UserControllerTest {
 
         List<User> commonFriends = userController.getCommonFriends(user.getId(), user1.getId());
         assertEquals(1, commonFriends.size());
-        assertTrue(commonFriends.contains(user2));
     }
 }

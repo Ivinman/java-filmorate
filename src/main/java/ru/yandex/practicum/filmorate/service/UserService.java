@@ -1,26 +1,31 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.AlreadyExistException;
 import ru.yandex.practicum.filmorate.exception.IncorrectParameterException;
 import ru.yandex.practicum.filmorate.exception.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.storage.user.UserFriendStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
 public class UserService {
     private final UserStorage userStorage;
+    private final UserFriendStorage userFriendStorage;
 
-    public UserService(UserStorage userStorage) {
+    public UserService(@Qualifier("userDbStorage") UserStorage userStorage, UserFriendStorage userFriendStorage) {
         this.userStorage = userStorage;
+        this.userFriendStorage = userFriendStorage;
     }
 
     public User addUser(User user) throws Exception {
@@ -28,7 +33,8 @@ public class UserService {
             log.info("Ошибка валидации");
             throw new ValidationException("Ошибка валидации");
         }
-        if (userStorage.getUsers().containsValue(user)) {
+        Map<Integer, User> userInDb = userStorage.getUsers();
+        if (userInDb.containsValue(user)) {
             log.info("Добавление через POST-запрос уже имеющегося объекта");
             throw new AlreadyExistException("Данный пользователь уже добавлен");
         }
@@ -53,60 +59,32 @@ public class UserService {
 
     public void addFriend(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
-        if (userStorage.getUsers().get(userId).getFriendsId().contains(requestedUserId)) {
-            log.info("Пользователь {} уже находится в списке друзей",
-                    userStorage.getUsers().get(requestedUserId).getName());
-            throw new AlreadyExistException("Данный пользователь уже находится в списке друзей");
-        }
-
-        userStorage.getUsers().get(userId).addFriend(requestedUserId);
-        userStorage.getUsers().get(requestedUserId).addFriend(userId);
-
-        log.info("Пользователь {} добавлен в список друзей {}",
-                userStorage.getUsers().get(requestedUserId).getName(),
-                userStorage.getUsers().get(userId).getName());
+        userFriendStorage.addFriend(userId, requestedUserId);
     }
+
 
     public String deleteFromFriends(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
-
-        userStorage.getUsers().get(userId).deleteFromFriends(requestedUserId);
-        userStorage.getUsers().get(requestedUserId).deleteFromFriends(userId);
-
-        log.info("Пользователь {} удален из списка друзей {}",
-                userStorage.getUsers().get(requestedUserId).getName(),
-                userStorage.getUsers().get(userId).getName());
-
-        return userStorage.getUsers().get(userId).getName() +
-                " удалил из друзей: " +
-                userStorage.getUsers().get(requestedUserId).getName();
+        return userFriendStorage.deleteFromFriends(userId, requestedUserId);
     }
 
     public List<User> getUserFriends(Integer userId) {
-        if (!userStorage.getUsers().containsKey(userId)) {
+        User user = userStorage.getUser(userId);
+        if (user == null) {
             log.info("Пользователь с данным id не найден");
             throw new UserNotFoundException("Пользователь с данным id не найден");
         }
-        List<User> userFriends = new ArrayList<>();
-        for (User userInStorage : getAll()) {
-            for (Integer id : userStorage.getUsers().get(userId).getFriendsId()) {
-                if (userInStorage.getId().equals(id)) {
-                    userFriends.add(userStorage.getUsers().get(id));
-                }
-            }
-        }
-        return userFriends;
+        return userFriendStorage.getUserFriends(userId);
     }
 
     public List<User> getCommonFriends(Integer userId, Integer requestedUserId) {
         throwException(userId, requestedUserId);
         List<User> commonFriends = new ArrayList<>();
-        for (Integer userFriendId : userStorage.getUsers().get(userId).getFriendsId()) {
-            for (Integer requestedUserFriendId : userStorage.getUsers().get(requestedUserId).getFriendsId()) {
-                if (userFriendId.equals(requestedUserFriendId)) {
-                    commonFriends.add(userStorage.getUsers().get(requestedUserFriendId));
-                    break;
-                }
+        List<User> userFriends = getUserFriends(userId);
+        List<User> requestUserFriends = getUserFriends(requestedUserId);
+        for (User user : userFriends) {
+            if (requestUserFriends.contains(user)) {
+                commonFriends.add(user);
             }
         }
         return commonFriends;
@@ -116,8 +94,9 @@ public class UserService {
         if (userId == null || requestedUserId == null) {
             throw new IncorrectParameterException("Некорректно заданные данные пользователей");
         }
-        if (!userStorage.getUsers().containsKey(userId)
-                || !userStorage.getUsers().containsKey(requestedUserId)) {
+        User user = userStorage.getUser(userId);
+        User requestedUser = userStorage.getUser(requestedUserId);
+        if (user == null || requestedUser == null) {
             log.info("Пользователь с данным id не найден");
             throw new UserNotFoundException("Пользователь с данным id не найден");
         }

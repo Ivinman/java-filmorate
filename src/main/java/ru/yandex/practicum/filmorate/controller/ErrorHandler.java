@@ -16,7 +16,7 @@ public class ErrorHandler {
         return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler({FilmNotFoundException.class, UserNotFoundException.class})
+    @ExceptionHandler({FilmNotFoundException.class, UserNotFoundException.class, NotFoundException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFoundExceptions(final RuntimeException e) {
         return new ErrorResponse(e.getMessage());

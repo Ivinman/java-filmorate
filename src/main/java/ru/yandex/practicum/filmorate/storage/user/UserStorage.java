@@ -7,6 +7,8 @@ import java.util.Map;
 public interface UserStorage {
     Map<Integer, User> getUsers();
 
+    User getUser(Integer id);
+
     User addUser(User user) throws Exception;
 
     User addOrUpdateUser(User user) throws Exception;

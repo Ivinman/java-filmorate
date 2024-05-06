@@ -46,4 +46,9 @@ public class FilmController {
     public List<Film> getTopFilms(@RequestParam (defaultValue = "10", required = false) Integer count) {
         return filmService.getTopFilms(count);
     }
+
+    @GetMapping("/{id}")
+    public Film getFilm(@PathVariable (required = false) Integer id) {
+        return filmService.getFilm(id);
+    }
 }
